@@ -1,0 +1,103 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Draw
+#pragma kernel Erase
+#pragma kernel Clear
+
+#define TEXTURE_WIDTH 1920u
+#define TEXTURE_HEIGHT 1080u
+#define CHALK_WIDTH 12.0
+#define ERASER_WIDTH 35.0
+
+RWTexture2D<float2> mask;
+RWTexture2D<float4> screen;
+Texture2D<float4> blackboard;
+uint2 resolution;
+
+[numthreads(16, 16, 1)]
+void Clear(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= resolution.x || id.y >= resolution.y)
+        return;
+    
+    
+    mask[id.xy] = 0;
+    screen[id.xy] = blackboard[uint2(id.x % TEXTURE_WIDTH, id.y % TEXTURE_HEIGHT)];
+}
+
+Texture2D<float4> chalk;
+
+float2 old_pos;
+float2 offset;
+
+float CaligraphicWeight(float2 pos, float brustRad, float2 squish)
+{
+    pos = (pos - old_pos) * squish;
+    float2 offset_cali = offset * squish;
+    float len = length(offset_cali) + 1E-6f;
+    
+    offset_cali /= len;
+    offset_cali *= clamp(dot(offset_cali, pos), 0.0, len);
+    offset_cali = (offset_cali - pos) / brustRad;
+    
+    len = dot(offset_cali, offset_cali);
+    return sqrt(max(0.0, 1.0 - len));
+}
+
+[numthreads(16,16,1)]
+void Draw(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= resolution.x || id.y >= resolution.y)
+        return;
+    float2 temp = mask[id.xy];
+    temp = float2(max(temp.x, CaligraphicWeight(float2(id.xy), CHALK_WIDTH, float2(2, 1))), temp.y);
+    
+    mask[id.xy] = temp;
+    uint2 coords = uint2(id.x % TEXTURE_WIDTH, id.y % TEXTURE_HEIGHT);
+    screen[id.xy] = lerp(lerp(blackboard[coords], chalk[coords], temp.x), .9, temp.y);
+}
+
+
+int3 pcg3d(int3 v)
+{
+
+    v = v * 1664525u + 1013904223u;
+
+    v.x += v.y * v.z;
+    v.y += v.z * v.x;
+    v.z += v.x * v.y;
+
+    v ^= v >> 16u;
+
+    v.x += v.y * v.z;
+    v.y += v.z * v.x;
+    v.z += v.x * v.y;
+
+    return v;
+}
+float3 rng3d(int3 seed)
+{
+    return pcg3d(seed) / 2147483648.0;
+}
+
+int globalSeed;
+[numthreads(16, 16, 1)]
+void Erase(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= resolution.x || id.y >= resolution.y)
+        return;
+    
+    uint2 coords = uint2(id.x % TEXTURE_WIDTH, id.y % TEXTURE_HEIGHT);
+    
+    float2 temp = mask[id.xy];
+    float3 rng = rng3d(int3(id.xy, globalSeed));
+    float weight = CaligraphicWeight(float2(id.xy), ERASER_WIDTH, 1) * (rng.z * .2 + .7);
+    
+    float4 chalk_tex = chalk[coords];
+    float2 smooth = mask[id.xy - offset * (1.3 + rng.xy)];
+    temp.y = clamp(lerp(temp.y, temp.x * chalk_tex.x + smooth.y * .99, weight), 0.0, 1.0);
+    temp.x *= 1.0 - weight;
+    
+    mask[id.xy] = temp;
+    screen[id.xy] = lerp(lerp(blackboard[coords], chalk_tex, temp.x), .9, temp.y);
+
+}
