@@ -48,8 +48,13 @@ void Draw(uint3 id : SV_DispatchThreadID)
 {
     if (id.x >= resolution.x || id.y >= resolution.y)
         return;
+    
+    float weight = CaligraphicWeight(float2(id.xy), CHALK_WIDTH, float2(2, 1));
+    if (weight < 0.01)
+        return;
+    
     float2 temp = mask[id.xy];
-    temp = float2(max(temp.x, CaligraphicWeight(float2(id.xy), CHALK_WIDTH, float2(2, 1))), temp.y);
+    temp.x = max(temp.x, weight);
     
     mask[id.xy] = temp;
     uint2 coords = uint2(id.x % TEXTURE_WIDTH, id.y % TEXTURE_HEIGHT);
@@ -80,21 +85,25 @@ float3 rng3d(int3 seed)
 }
 
 int globalSeed;
+float strength;
 [numthreads(16, 16, 1)]
 void Erase(uint3 id : SV_DispatchThreadID)
 {
     if (id.x >= resolution.x || id.y >= resolution.y)
         return;
     
-    uint2 coords = uint2(id.x % TEXTURE_WIDTH, id.y % TEXTURE_HEIGHT);
+    float weight = CaligraphicWeight(float2(id.xy), ERASER_WIDTH, 1);
+    if (weight < 0.01)
+        return;
     
+    uint2 coords = uint2(id.x % TEXTURE_WIDTH, id.y % TEXTURE_HEIGHT);
     float2 temp = mask[id.xy];
     float3 rng = rng3d(int3(id.xy, globalSeed));
-    float weight = CaligraphicWeight(float2(id.xy), ERASER_WIDTH, 1) * (rng.z * .2 + .7);
+    weight *= rng.z * .2 + .7;
     
     float4 chalk_tex = chalk[coords];
     float2 smooth = mask[id.xy - offset * (1.3 + rng.xy)];
-    temp.y = clamp(lerp(temp.y, temp.x * chalk_tex.x + smooth.y * .99, weight), 0.0, 1.0);
+    temp.y = clamp(lerp(temp.y, temp.x * chalk_tex.x + smooth.y * strength, weight), 0.0, 1.0);
     temp.x *= 1.0 - weight;
     
     mask[id.xy] = temp;

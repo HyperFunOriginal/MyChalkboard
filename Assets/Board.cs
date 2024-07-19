@@ -54,8 +54,15 @@ public class Board : MonoBehaviour
     [Header("Compute Shaders")]
     public ComputeShader draw;
     int Draw, Erase, Clear;
-
+    bool update = false;
     int frameCount = 0;
+
+    void ClearChalk()
+    {
+        draw.SetInts("resolution", texture.width, texture.height);
+        draw.Dispatch(Clear, Mathf.CeilToInt(texture.width / 16f), Mathf.CeilToInt(texture.height / 16f), 1);
+        update = true;
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -82,11 +89,6 @@ public class Board : MonoBehaviour
             shufflePseudoRandom.Add(rng);
         }
 
-        RenderTexture temp = RenderTexture.active;
-        RenderTexture.active = texture;
-        Graphics.Blit(blackboard, texture, new Vector2(transform.localScale.x / 1.77777777778f, 1f), Vector2.zero);
-        RenderTexture.active = temp;
-
         draw.SetTexture(Clear, "mask", mask);
         draw.SetTexture(Clear, "screen", texture);
         draw.SetTexture(Clear, "blackboard", blackboard);
@@ -96,8 +98,9 @@ public class Board : MonoBehaviour
         draw.SetTexture(Erase, "chalk", chalk);
 
         Cursor.SetCursor(chalkUp, new Vector2(0, 0), CursorMode.Auto);
+        ClearChalk();
     }
-
+    
     private void LateUpdate()
     {
         bool walterLewin = Input.GetKey(KeyCode.LeftShift);
@@ -112,26 +115,28 @@ public class Board : MonoBehaviour
             draw.SetFloats("offset", mousePos.x - oldMousePos.x, mousePos.y - oldMousePos.y);
             draw.SetInts("resolution", texture.width, texture.height);
             draw.Dispatch(Draw, Mathf.CeilToInt(texture.width / 16f), Mathf.CeilToInt(texture.height / 16f), 1);
+            update = true;
         }
         if (Input.GetMouseButton(1))
         {
             draw.SetTexture(Erase, "mask", mask);
             draw.SetTexture(Erase, "screen", texture);
+            draw.SetFloat("strength", Input.GetKey(KeyCode.LeftShift) ? 0.85f : 0.99f);
             draw.SetFloats("old_pos", oldMousePos.x, oldMousePos.y);
             draw.SetFloats("offset", mousePos.x - oldMousePos.x, mousePos.y - oldMousePos.y);
             draw.SetInts("resolution", texture.width, texture.height);
             draw.SetInt("globalSeed", Random.Range(int.MinValue, int.MaxValue));
             draw.Dispatch(Erase, Mathf.CeilToInt(texture.width / 16f), Mathf.CeilToInt(texture.height / 16f), 1);
+            update = true;
         }
-        if (Input.GetKeyDown(KeyCode.Delete))
-        {
-            draw.SetInts("resolution", texture.width, texture.height);
-            draw.Dispatch(Clear, Mathf.CeilToInt(texture.width / 16f), Mathf.CeilToInt(texture.height / 16f), 1);
-        }
-        mat.SetTexture("_MainTex", texture);
+        if (Input.GetKeyDown(KeyCode.Delete)) 
+            ClearChalk();
+        if (update)
+            mat.SetTexture("_MainTex", texture);
 
         if (Input.GetKeyDown(KeyCode.C) && Input.GetKey(KeyCode.LeftControl))
             CopyToClipboard(texture);
+        update = false;
     }
 
     void HandleCursor()
@@ -150,7 +155,7 @@ public class Board : MonoBehaviour
         if (Input.GetMouseButton(0))
             mouseVel1 = (mousePos - oldMousePos).magnitude * 5f / Screen.width;
         if (Input.GetMouseButton(1))
-            mouseVel2 = (mousePos - oldMousePos).magnitude * 5f / Screen.width;
+            mouseVel2 = (mousePos - oldMousePos).magnitude * (Input.GetKey(KeyCode.LeftShift) ? 25f : 5f) / Screen.width;
         float lerpFactor = Mathf.Exp(-Time.deltaTime * 25f);
 
         stroke_strength = stroke_strength * lerpFactor + mouseVel1 * (1f - lerpFactor);
