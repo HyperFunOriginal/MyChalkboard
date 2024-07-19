@@ -7,5 +7,6 @@ A simulated chalkboard written in Unity, with sound effects and realistic erasin
 - `Left-mouse-button`: Draw with chalk
 - `Left-mouse-button + Left Shift`: Draw dotted line
 - `Right-mouse-button`: Eraser
+- `Right-mouse-button + Left Shift`: Strong Eraser
 - `Delete`: Clears Board
 - `Left Control + C`: Copy screen contents to clipboard
