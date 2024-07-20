@@ -5,7 +5,7 @@
 
 #define TEXTURE_WIDTH 1920u
 #define TEXTURE_HEIGHT 1080u
-#define CHALK_WIDTH 12.0
+#define CHALK_WIDTH 9.5
 #define ERASER_WIDTH 35.0
 
 RWTexture2D<float2> mask;
@@ -49,7 +49,7 @@ void Draw(uint3 id : SV_DispatchThreadID)
     if (id.x >= resolution.x || id.y >= resolution.y)
         return;
     
-    float weight = CaligraphicWeight(float2(id.xy), CHALK_WIDTH, float2(2, 1));
+    float weight = CaligraphicWeight(float2(id.xy), CHALK_WIDTH, float2(1.5, 1));
     if (weight < 0.01)
         return;
     

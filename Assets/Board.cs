@@ -172,7 +172,7 @@ public class Board : MonoBehaviour
         bool walterLewin = Input.GetMouseButton(0) && Input.GetKey(KeyCode.LeftShift) && frameCount == 0;
         if (Input.GetMouseButtonDown(0) || walterLewin)
         {
-            clack.volume = walterLewin ? Mathf.Clamp01(mouseVel1 * 3f): 1f;
+            clack.volume = walterLewin ? Mathf.Clamp01(mouseVel1 * 5f): 1f;
             int rng = shufflePseudoRandom[Random.Range(0, Mathf.Min(clackSounds.Count - 1, 5))];
             clack.PlayOneShot(clackSounds[rng]);
             shufflePseudoRandom.Remove(rng);
