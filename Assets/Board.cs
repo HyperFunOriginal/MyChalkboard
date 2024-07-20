@@ -142,7 +142,7 @@ public class Board : MonoBehaviour
     void HandleCursor()
     {
         if (Input.GetMouseButtonUp(0) || Input.GetMouseButtonUp(1))
-            Cursor.SetCursor(chalkUp, new Vector2(0, 0), CursorMode.Auto);
+            Cursor.SetCursor(chalkUp, new Vector2(8f, 8f), CursorMode.Auto);
         if (Input.GetMouseButtonDown(0))
             Cursor.SetCursor(chalkDown, new Vector2(0, 64f), CursorMode.Auto);
         if (Input.GetMouseButtonDown(1))
@@ -169,8 +169,10 @@ public class Board : MonoBehaviour
         clack.panStereo = mousePos.x / Screen.width - .5f;
 
         frameCount = (frameCount + 1) % 3;
-        if (Input.GetMouseButtonDown(0) || (Input.GetMouseButton(0) && Input.GetKey(KeyCode.LeftShift) && frameCount == 0))
+        bool walterLewin = Input.GetMouseButton(0) && Input.GetKey(KeyCode.LeftShift) && frameCount == 0;
+        if (Input.GetMouseButtonDown(0) || walterLewin)
         {
+            clack.volume = walterLewin ? Mathf.Clamp01(mouseVel1 * 3f): 1f;
             int rng = shufflePseudoRandom[Random.Range(0, Mathf.Min(clackSounds.Count - 1, 5))];
             clack.PlayOneShot(clackSounds[rng]);
             shufflePseudoRandom.Remove(rng);
