@@ -138,7 +138,22 @@ public class Board : MonoBehaviour
         PlayClack(1f);
         yield return new WaitForEndOfFrame();
     }
-    IEnumerator LineTool()
+    IEnumerator DrawFullLine(Vector2 start, Vector2 end)
+    {
+        float step = 100f / Mathf.Max(100f, (start - end).magnitude), r = 0;
+        stroke.volume = 0.3f;
+
+        for (; r < 1f; r += step)
+        {
+            DrawLine(Vector2.Lerp(start, end, r), Vector2.Lerp(start, end, r + step));
+            yield return new WaitForSecondsRealtime(0.03f);
+        }
+
+        DrawLine(Vector2.Lerp(start, end, r), end);
+        PlayClack(1f);
+        yield return new WaitForEndOfFrame();
+    }
+    IEnumerator DottedLineTool()
     {
         if (toolUsed)
             yield break;
@@ -149,6 +164,19 @@ public class Board : MonoBehaviour
         Vector2 end = mousePos;
 
         yield return DrawDottedLine(start, end);
+        toolUsed = false;
+    }
+    IEnumerator LineTool()
+    {
+        if (toolUsed)
+            yield break;
+
+        toolUsed = true;
+        Vector2 start = mousePos;
+        yield return new WaitUntil(() => { return Input.GetMouseButtonUp(0); });
+        Vector2 end = mousePos;
+
+        yield return DrawFullLine(start, end);
         toolUsed = false;
     }
     IEnumerator BoxTool()
@@ -208,6 +236,9 @@ public class Board : MonoBehaviour
 
         if (Input.GetKey(KeyCode.C) && Input.GetMouseButtonDown(0))
             StartCoroutine(CircleTool());
+
+        if (Input.GetKey(KeyCode.D) && Input.GetMouseButtonDown(0))
+            StartCoroutine(DottedLineTool());
 
         if (Input.GetKey(KeyCode.L) && Input.GetMouseButtonDown(0))
             StartCoroutine(LineTool());
