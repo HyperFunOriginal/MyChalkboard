@@ -115,21 +115,22 @@ public class Board : MonoBehaviour
 
         for (float r = 0; r < Mathf.PI * 2f; r += step)
         {
-            DrawLine(new Vector2(Mathf.Cos(r), Mathf.Sin(r)) * radius + center, new Vector2(Mathf.Cos(r + step * .3f), Mathf.Sin(r + step * .3f)) * radius + center);
+            DrawLine(new Vector2(Mathf.Cos(r), Mathf.Sin(r)) * radius + center + Random.insideUnitCircle * 2f,
+                     new Vector2(Mathf.Cos(r + step * .3f), Mathf.Sin(r + step * .3f)) * radius + center + Random.insideUnitCircle * 2f);
             PlayClack(.3f);
             yield return new WaitForSecondsRealtime(0.03f);
         }
         PlayClack(1f);
         toolUsed = false;
     }
-
     IEnumerator DrawDottedLine(Vector2 start, Vector2 end)
     {
         float step = 70f / Mathf.Max(200f, (start - end).magnitude), r = 0;
 
         for (; r < 1f; r += step)
         {
-            DrawLine(Vector2.Lerp(start, end, r), Vector2.Lerp(start, end, r + step * .3f));
+            DrawLine(Vector2.Lerp(start, end, r) + Random.insideUnitCircle * 2f,
+                     Vector2.Lerp(start, end, r + step * .3f) + Random.insideUnitCircle * 2f);
             PlayClack(.3f);
             yield return new WaitForSecondsRealtime(0.03f);
         }
@@ -141,15 +142,16 @@ public class Board : MonoBehaviour
     IEnumerator DrawFullLine(Vector2 start, Vector2 end)
     {
         float step = 100f / Mathf.Max(100f, (start - end).magnitude), r = 0;
-        stroke.volume = 0.3f;
+        Vector2 temp1 = start, temp2 = start; stroke.volume = 0.3f;
 
         for (; r < 1f; r += step)
         {
-            DrawLine(Vector2.Lerp(start, end, r), Vector2.Lerp(start, end, r + step));
+            temp2 = Vector2.Lerp(start, end, r + step) + Random.insideUnitCircle * 2f;
+            DrawLine(temp1, temp2); temp1 = temp2;
             yield return new WaitForSecondsRealtime(0.03f);
         }
 
-        DrawLine(Vector2.Lerp(start, end, r), end);
+        DrawLine(temp2, end);
         PlayClack(1f);
         yield return new WaitForEndOfFrame();
     }
