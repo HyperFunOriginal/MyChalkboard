@@ -54,6 +54,7 @@ public class Board : MonoBehaviour
     [Header("Compute Shaders")]
     public ComputeShader draw;
     int Draw, Erase, Clear;
+    bool toolUsed = false;
     bool update = false;
     int frameCount = 0;
 
@@ -98,45 +99,127 @@ public class Board : MonoBehaviour
         draw.SetTexture(Erase, "chalk", chalk);
 
         Cursor.SetCursor(chalkUp, new Vector2(0, 0), CursorMode.Auto);
-        ClearChalk();
+        ClearChalk(); toolUsed = false;
     }
     
+    IEnumerator CircleTool()
+    {
+        if (toolUsed)
+            yield break;
+
+        toolUsed = true;
+        Vector2 center = mousePos;
+        yield return new WaitUntil(() => { return Input.GetMouseButtonUp(0); });
+        float radius = (mousePos - center).magnitude;
+        float step = 100f / Mathf.Max(100f, radius);
+
+        for (float r = 0; r < Mathf.PI * 2f; r += step)
+        {
+            DrawLine(new Vector2(Mathf.Cos(r), Mathf.Sin(r)) * radius + center, new Vector2(Mathf.Cos(r + step * .3f), Mathf.Sin(r + step * .3f)) * radius + center);
+            PlayClack(.3f);
+            yield return new WaitForSecondsRealtime(0.03f);
+        }
+        PlayClack(1f);
+        toolUsed = false;
+    }
+
+    IEnumerator DrawDottedLine(Vector2 start, Vector2 end)
+    {
+        float step = 70f / Mathf.Max(200f, (start - end).magnitude), r = 0;
+
+        for (; r < 1f; r += step)
+        {
+            DrawLine(Vector2.Lerp(start, end, r), Vector2.Lerp(start, end, r + step * .3f));
+            PlayClack(.3f);
+            yield return new WaitForSecondsRealtime(0.03f);
+        }
+
+        DrawLine(Vector2.Lerp(start, end, r), end);
+        PlayClack(1f);
+        yield return new WaitForEndOfFrame();
+    }
+    IEnumerator LineTool()
+    {
+        if (toolUsed)
+            yield break;
+
+        toolUsed = true;
+        Vector2 start = mousePos;
+        yield return new WaitUntil(() => { return Input.GetMouseButtonUp(0); });
+        Vector2 end = mousePos;
+
+        yield return DrawDottedLine(start, end);
+        toolUsed = false;
+    }
+    IEnumerator BoxTool()
+    {
+        if (toolUsed)
+            yield break;
+
+        toolUsed = true;
+        Vector2 start = mousePos;
+        yield return new WaitUntil(() => { return Input.GetMouseButtonUp(0); });
+        Vector2 end = mousePos;
+
+        yield return DrawDottedLine(start, new Vector2(start.x, end.y));
+        yield return DrawDottedLine(new Vector2(start.x, end.y), end);
+        yield return DrawDottedLine(end, new Vector2(end.x, start.y));
+        yield return DrawDottedLine(new Vector2(end.x, start.y), start);
+        toolUsed = false;
+    }
+
+    void DrawLine(Vector2 oldPos, Vector2 newPos)
+    {
+        draw.SetTexture(Draw, "mask", mask);
+        draw.SetTexture(Draw, "screen", texture);
+        draw.SetFloats("old_pos", oldPos.x, oldPos.y);
+        draw.SetFloats("offset", newPos.x - oldPos.x, newPos.y - oldPos.y);
+        draw.SetInts("resolution", texture.width, texture.height);
+        draw.Dispatch(Draw, Mathf.CeilToInt(texture.width / 16f), Mathf.CeilToInt(texture.height / 16f), 1);
+        update = true;
+    }
+    void EraseLine(Vector2 oldPos, Vector2 newPos)
+    {
+        draw.SetTexture(Erase, "mask", mask);
+        draw.SetTexture(Erase, "screen", texture);
+        draw.SetFloat("strength", Input.GetKey(KeyCode.LeftShift) ? 0.85f : 0.99f);
+        draw.SetFloats("old_pos", oldPos.x, oldPos.y);
+        draw.SetFloats("offset", newPos.x - oldPos.x, newPos.y - oldPos.y);
+        draw.SetInts("resolution", texture.width, texture.height);
+        draw.SetInt("globalSeed", Random.Range(int.MinValue, int.MaxValue));
+        draw.Dispatch(Erase, Mathf.CeilToInt(texture.width / 16f), Mathf.CeilToInt(texture.height / 16f), 1);
+        update = true;
+    }
+
     private void LateUpdate()
     {
-        bool walterLewin = Input.GetKey(KeyCode.LeftShift);
-        if (Input.GetMouseButton(0) && (!walterLewin || frameCount != 0))
+        if (!toolUsed)
         {
-            if (frameCount == 1 && walterLewin)
-                oldMousePos = mousePos;
+            bool walterLewin = Input.GetKey(KeyCode.LeftShift);
+            if (Input.GetMouseButton(0) && (!walterLewin || frameCount != 0))
+                DrawLine((frameCount == 1 && walterLewin) ? mousePos : oldMousePos, mousePos);
+            if (Input.GetMouseButton(1))
+                EraseLine(oldMousePos, mousePos);
+            if (Input.GetKeyDown(KeyCode.Delete))
+                ClearChalk();
+            if (Input.GetKeyDown(KeyCode.C) && Input.GetKey(KeyCode.LeftControl))
+                CopyToClipboard(texture);
+        }
 
-            draw.SetTexture(Draw, "mask", mask);
-            draw.SetTexture(Draw, "screen", texture);
-            draw.SetFloats("old_pos", oldMousePos.x, oldMousePos.y);
-            draw.SetFloats("offset", mousePos.x - oldMousePos.x, mousePos.y - oldMousePos.y);
-            draw.SetInts("resolution", texture.width, texture.height);
-            draw.Dispatch(Draw, Mathf.CeilToInt(texture.width / 16f), Mathf.CeilToInt(texture.height / 16f), 1);
-            update = true;
-        }
-        if (Input.GetMouseButton(1))
-        {
-            draw.SetTexture(Erase, "mask", mask);
-            draw.SetTexture(Erase, "screen", texture);
-            draw.SetFloat("strength", Input.GetKey(KeyCode.LeftShift) ? 0.85f : 0.99f);
-            draw.SetFloats("old_pos", oldMousePos.x, oldMousePos.y);
-            draw.SetFloats("offset", mousePos.x - oldMousePos.x, mousePos.y - oldMousePos.y);
-            draw.SetInts("resolution", texture.width, texture.height);
-            draw.SetInt("globalSeed", Random.Range(int.MinValue, int.MaxValue));
-            draw.Dispatch(Erase, Mathf.CeilToInt(texture.width / 16f), Mathf.CeilToInt(texture.height / 16f), 1);
-            update = true;
-        }
-        if (Input.GetKeyDown(KeyCode.Delete)) 
-            ClearChalk();
+        if (Input.GetKey(KeyCode.C) && Input.GetMouseButtonDown(0))
+            StartCoroutine(CircleTool());
+
+        if (Input.GetKey(KeyCode.L) && Input.GetMouseButtonDown(0))
+            StartCoroutine(LineTool());
+
+        if (Input.GetKey(KeyCode.B) && Input.GetMouseButtonDown(0))
+            StartCoroutine(BoxTool());
+
         if (update)
+        {
             mat.SetTexture("_MainTex", texture);
-
-        if (Input.GetKeyDown(KeyCode.C) && Input.GetKey(KeyCode.LeftControl))
-            CopyToClipboard(texture);
-        update = false;
+            update = false;
+        }
     }
 
     void HandleCursor()
@@ -147,6 +230,15 @@ public class Board : MonoBehaviour
             Cursor.SetCursor(chalkDown, new Vector2(0, 64f), CursorMode.Auto);
         if (Input.GetMouseButtonDown(1))
             Cursor.SetCursor(eraser, new Vector2(0, 32f), CursorMode.Auto);
+    }
+
+    void PlayClack(float volume)
+    {
+        clack.volume = volume;
+        int rng = shufflePseudoRandom[Random.Range(0, Mathf.Min(clackSounds.Count - 1, 5))];
+        clack.PlayOneShot(clackSounds[rng]);
+        shufflePseudoRandom.Remove(rng);
+        shufflePseudoRandom.Add(rng);
     }
 
     void HandleAudio()
@@ -171,13 +263,7 @@ public class Board : MonoBehaviour
         frameCount = (frameCount + 1) % 3;
         bool walterLewin = Input.GetMouseButton(0) && Input.GetKey(KeyCode.LeftShift) && frameCount == 0;
         if (Input.GetMouseButtonDown(0) || walterLewin)
-        {
-            clack.volume = walterLewin ? Mathf.Clamp01(mouseVel1 * 5f): 1f;
-            int rng = shufflePseudoRandom[Random.Range(0, Mathf.Min(clackSounds.Count - 1, 5))];
-            clack.PlayOneShot(clackSounds[rng]);
-            shufflePseudoRandom.Remove(rng);
-            shufflePseudoRandom.Add(rng);
-        }
+            PlayClack(walterLewin ? Mathf.Clamp01(mouseVel1 * 5f) : 1f);
     }
 
     // Update is called once per frame
@@ -186,8 +272,9 @@ public class Board : MonoBehaviour
         oldMousePos = mousePos;
         mousePos = Vector2.Lerp(Input.mousePosition, mousePos, Mathf.Exp(-Time.deltaTime * 20f));
 
-        HandleAudio();
         HandleCursor();
+        if (!toolUsed)
+            HandleAudio();
     }
 
     public static void CopyToClipboard(RenderTexture texture)
