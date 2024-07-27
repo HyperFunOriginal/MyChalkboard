@@ -10,3 +10,13 @@ A simulated chalkboard written in Unity, with sound effects and realistic erasin
 - `Right-mouse-button + Left Shift`: Strong Eraser
 - `Delete`: Clears Board
 - `Left Control + C`: Copy screen contents to clipboard
+
+### Automated Drawing Tools
+
+`C + Left-mouse-button`: (Dotted) Circle tool, centered at click point, with radius at release point.
+
+`B + Left-mouse-button`: (Dotted) Box tool, with corners at click point and at release point.
+
+`L + Left-mouse-button`: Line tool, from click point to release point.
+
+`D + Left-mouse-button`: Dotted line tool, from click point to release point.
