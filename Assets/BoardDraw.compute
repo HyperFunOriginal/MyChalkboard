@@ -5,7 +5,7 @@
 
 #define TEXTURE_WIDTH 1920u
 #define TEXTURE_HEIGHT 1080u
-#define CHALK_WIDTH 9.5
+#define CHALK_WIDTH 6.5
 #define ERASER_WIDTH 35.0
 
 RWTexture2D<float2> mask;
