@@ -6,7 +6,6 @@
 #define TEXTURE_WIDTH 1920u
 #define TEXTURE_HEIGHT 1080u
 #define CHALK_WIDTH 6.5
-#define ERASER_WIDTH 35.0
 
 RWTexture2D<float2> mask;
 RWTexture2D<float4> screen;
@@ -86,13 +85,14 @@ float3 rng3d(int3 seed)
 
 int globalSeed;
 float strength;
+float radius;
 [numthreads(16, 16, 1)]
 void Erase(uint3 id : SV_DispatchThreadID)
 {
     if (id.x >= resolution.x || id.y >= resolution.y)
         return;
     
-    float weight = CaligraphicWeight(float2(id.xy), ERASER_WIDTH, 1);
+    float weight = CaligraphicWeight(float2(id.xy), radius, 1);
     if (weight < 0.01)
         return;
     
@@ -102,7 +102,7 @@ void Erase(uint3 id : SV_DispatchThreadID)
     weight *= rng.z * .2 + .7;
     
     float4 chalk_tex = chalk[coords];
-    float2 smooth = mask[id.xy - offset * (1.3 + rng.xy)];
+    float2 smooth = mask[id.xy - round(offset) * (1.3 + rng.xy)];
     temp.y = clamp(lerp(temp.y, temp.x * chalk_tex.x + smooth.y * strength, weight), 0.0, 1.0);
     temp.x *= 1.0 - weight;
     

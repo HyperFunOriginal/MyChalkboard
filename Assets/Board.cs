@@ -115,12 +115,12 @@ public class Board : MonoBehaviour
 
         for (float r = 0; r < Mathf.PI * 2f; r += step)
         {
-            DrawLine(new Vector2(Mathf.Cos(r), Mathf.Sin(r)) * radius + center + Random.insideUnitCircle * 2f,
-                     new Vector2(Mathf.Cos(r + step * .3f), Mathf.Sin(r + step * .3f)) * radius + center + Random.insideUnitCircle * 2f);
-            PlayClack(.3f);
+            Vector2 pos_temp = new Vector2(Mathf.Cos(r), Mathf.Sin(r)) * radius + center + Random.insideUnitCircle * 2f;
+            DrawLine(pos_temp, new Vector2(Mathf.Cos(r + step * .3f), Mathf.Sin(r + step * .3f)) * radius + center + Random.insideUnitCircle * 2f);
+            PlayClack(.3f, pos_temp.x);
             yield return new WaitForSecondsRealtime(0.03f);
         }
-        PlayClack(1f);
+        PlayClack(1f, center.x);
         toolUsed = false;
     }
     IEnumerator DrawDottedLine(Vector2 start, Vector2 end)
@@ -129,14 +129,14 @@ public class Board : MonoBehaviour
 
         for (; r < 1f; r += step)
         {
-            DrawLine(Vector2.Lerp(start, end, r) + Random.insideUnitCircle * 2f,
-                     Vector2.Lerp(start, end, r + step * .3f) + Random.insideUnitCircle * 2f);
-            PlayClack(.3f);
+            Vector2 pos_temp = Vector2.Lerp(start, end, r) + Random.insideUnitCircle * 2f;
+            DrawLine(pos_temp, Vector2.Lerp(start, end, r + step * .3f) + Random.insideUnitCircle * 2f);
+            PlayClack(.3f, pos_temp.x);
             yield return new WaitForSecondsRealtime(0.03f);
         }
 
         DrawLine(Vector2.Lerp(start, end, r), end);
-        PlayClack(1f);
+        PlayClack(1f, end.x);
         yield return new WaitForEndOfFrame();
     }
     IEnumerator DrawFullLine(Vector2 start, Vector2 end)
@@ -148,11 +148,12 @@ public class Board : MonoBehaviour
         {
             temp2 = Vector2.Lerp(start, end, r + step) + Random.insideUnitCircle * 2f;
             DrawLine(temp1, temp2); temp1 = temp2;
+            stroke.panStereo = 2f * temp2.x / Screen.width - 1f;
             yield return new WaitForSecondsRealtime(0.03f);
         }
 
         DrawLine(temp2, end);
-        PlayClack(1f);
+        PlayClack(1f, end.x);
         yield return new WaitForEndOfFrame();
     }
     IEnumerator DottedLineTool()
@@ -212,7 +213,8 @@ public class Board : MonoBehaviour
     {
         draw.SetTexture(Erase, "mask", mask);
         draw.SetTexture(Erase, "screen", texture);
-        draw.SetFloat("strength", Input.GetKey(KeyCode.LeftShift) ? 0.85f : 0.99f);
+        draw.SetFloat("strength", Input.GetKey(KeyCode.LeftShift) ? 0.9f : 1f);
+        draw.SetFloat("radius", Input.GetKey(KeyCode.LeftShift) ? 50f : 20f);
         draw.SetFloats("old_pos", oldPos.x, oldPos.y);
         draw.SetFloats("offset", newPos.x - oldPos.x, newPos.y - oldPos.y);
         draw.SetInts("resolution", texture.width, texture.height);
@@ -265,10 +267,12 @@ public class Board : MonoBehaviour
             Cursor.SetCursor(eraser, new Vector2(0, 32f), CursorMode.Auto);
     }
 
-    void PlayClack(float volume)
+    void PlayClack(float volume, float playPos)
     {
         clack.volume = volume;
         int rng = shufflePseudoRandom[Random.Range(0, Mathf.Min(clackSounds.Count - 1, 5))];
+
+        clack.panStereo = 2f * playPos / Screen.width - 1f;
         clack.PlayOneShot(clackSounds[rng]);
         shufflePseudoRandom.Remove(rng);
         shufflePseudoRandom.Add(rng);
@@ -289,14 +293,13 @@ public class Board : MonoBehaviour
         erase_strength = erase_strength * lerpFactor + mouseVel2 * (1f - lerpFactor);
         erase.volume = erase_strength;
 
-        stroke.panStereo = mousePos.x / Screen.width - .5f;
-        erase.panStereo = mousePos.x / Screen.width - .5f;
-        clack.panStereo = mousePos.x / Screen.width - .5f;
+        stroke.panStereo = 2f * mousePos.x / Screen.width - 1f;
+        erase.panStereo  = 2f * mousePos.x / Screen.width - 1f;
 
         frameCount = (frameCount + 1) % 3;
         bool walterLewin = Input.GetMouseButton(0) && Input.GetKey(KeyCode.LeftShift) && frameCount == 0;
         if (Input.GetMouseButtonDown(0) || walterLewin)
-            PlayClack(walterLewin ? Mathf.Clamp01(mouseVel1 * 5f) : 1f);
+            PlayClack(walterLewin ? Mathf.Clamp01(mouseVel1 * 5f) : 1f, mousePos.x);
     }
 
     // Update is called once per frame
