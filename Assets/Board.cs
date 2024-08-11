@@ -92,16 +92,20 @@ public class Board : MonoBehaviour
 
         draw.SetTexture(Clear, "mask", mask);
         draw.SetTexture(Clear, "screen", texture);
-        draw.SetTexture(Clear, "blackboard", blackboard);
-        draw.SetTexture(Draw, "blackboard", blackboard);
         draw.SetTexture(Draw, "chalk", chalk);
-        draw.SetTexture(Erase, "blackboard", blackboard);
         draw.SetTexture(Erase, "chalk", chalk);
 
-        Cursor.SetCursor(chalkUp, new Vector2(0, 0), CursorMode.Auto);
-        ClearChalk(); toolUsed = false;
+        Cursor.SetCursor(chalkUp, new Vector2(0, 0), CursorMode.Auto); SetBoard();
     }
     
+    public void SetBoard()
+    {
+        draw.SetTexture(Clear, "blackboard", blackboard);
+        draw.SetTexture(Draw, "blackboard", blackboard);
+        draw.SetTexture(Erase, "blackboard", blackboard);
+        ClearChalk(); toolUsed = false;
+    }
+
     IEnumerator CircleTool()
     {
         if (toolUsed)
@@ -111,12 +115,12 @@ public class Board : MonoBehaviour
         Vector2 center = mousePos;
         yield return new WaitUntil(() => { return Input.GetMouseButtonUp(0); });
         float radius = (mousePos - center).magnitude;
-        float step = 100f / Mathf.Max(100f, radius);
+        float step = 50f / Mathf.Max(100f, radius);
 
         for (float r = 0; r < Mathf.PI * 2f; r += step)
         {
-            Vector2 pos_temp = new Vector2(Mathf.Cos(r), Mathf.Sin(r)) * radius + center + Random.insideUnitCircle * 2f;
-            DrawLine(pos_temp, new Vector2(Mathf.Cos(r + step * .3f), Mathf.Sin(r + step * .3f)) * radius + center + Random.insideUnitCircle * 2f);
+            Vector2 pos_temp = new Vector2(Mathf.Cos(r), Mathf.Sin(r)) * radius + center + Random.insideUnitCircle * 1.5f;
+            DrawLine(pos_temp, new Vector2(Mathf.Cos(r + step * .3f), Mathf.Sin(r + step * .3f)) * radius + center + Random.insideUnitCircle * 1.5f);
             PlayClack(.3f, pos_temp.x);
             yield return new WaitForSecondsRealtime(0.03f);
         }
@@ -125,12 +129,12 @@ public class Board : MonoBehaviour
     }
     IEnumerator DrawDottedLine(Vector2 start, Vector2 end)
     {
-        float step = 70f / Mathf.Max(200f, (start - end).magnitude), r = 0;
+        float step = 50f / Mathf.Max(200f, (start - end).magnitude), r = 0;
 
         for (; r < 1f; r += step)
         {
-            Vector2 pos_temp = Vector2.Lerp(start, end, r) + Random.insideUnitCircle * 2f;
-            DrawLine(pos_temp, Vector2.Lerp(start, end, r + step * .3f) + Random.insideUnitCircle * 2f);
+            Vector2 pos_temp = Vector2.Lerp(start, end, r) + Random.insideUnitCircle * 1.5f;
+            DrawLine(pos_temp, Vector2.Lerp(start, end, r + step * .3f) + Random.insideUnitCircle * 1.5f);
             PlayClack(.3f, pos_temp.x);
             yield return new WaitForSecondsRealtime(0.03f);
         }
@@ -146,7 +150,7 @@ public class Board : MonoBehaviour
 
         for (; r < 1f; r += step)
         {
-            temp2 = Vector2.Lerp(start, end, r + step) + Random.insideUnitCircle * 2f;
+            temp2 = Vector2.Lerp(start, end, r + step) + Random.insideUnitCircle * 1.5f;
             DrawLine(temp1, temp2); temp1 = temp2;
             stroke.panStereo = 2f * temp2.x / Screen.width - 1f;
             yield return new WaitForSecondsRealtime(0.03f);
