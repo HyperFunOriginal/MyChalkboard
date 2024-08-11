@@ -112,17 +112,21 @@ public class Board : MonoBehaviour
             yield break;
 
         toolUsed = true;
+        stroke.volume = 0f;
         Vector2 center = mousePos;
         yield return new WaitUntil(() => { return Input.GetMouseButtonUp(0); });
         float radius = (mousePos - center).magnitude;
         float step = 50f / Mathf.Max(100f, radius);
 
-        for (float r = 0; r < Mathf.PI * 2f; r += step)
+        int k = 0;
+        for (float r = 0; r < Mathf.PI * 2f; r += step, k++)
         {
             Vector2 pos_temp = new Vector2(Mathf.Cos(r), Mathf.Sin(r)) * radius + center + Random.insideUnitCircle * 1.5f;
             DrawLine(pos_temp, new Vector2(Mathf.Cos(r + step * .3f), Mathf.Sin(r + step * .3f)) * radius + center + Random.insideUnitCircle * 1.5f);
-            PlayClack(.3f, pos_temp.x);
-            yield return new WaitForSecondsRealtime(0.03f);
+            if (k % 2 == 0)
+                PlayClack(.3f, pos_temp.x);
+
+            yield return new WaitForEndOfFrame();
         }
         PlayClack(1f, center.x);
         toolUsed = false;
@@ -131,12 +135,13 @@ public class Board : MonoBehaviour
     {
         float step = 50f / Mathf.Max(200f, (start - end).magnitude), r = 0;
 
-        for (; r < 1f; r += step)
+        for (int k = 0; r < 1f; r += step, k++)
         {
             Vector2 pos_temp = Vector2.Lerp(start, end, r) + Random.insideUnitCircle * 1.5f;
             DrawLine(pos_temp, Vector2.Lerp(start, end, r + step * .3f) + Random.insideUnitCircle * 1.5f);
-            PlayClack(.3f, pos_temp.x);
-            yield return new WaitForSecondsRealtime(0.03f);
+            if (k % 2 == 0)
+                PlayClack(.3f, pos_temp.x);
+            yield return new WaitForEndOfFrame();
         }
 
         DrawLine(Vector2.Lerp(start, end, r), end);
@@ -145,7 +150,7 @@ public class Board : MonoBehaviour
     }
     IEnumerator DrawFullLine(Vector2 start, Vector2 end)
     {
-        float step = 100f / Mathf.Max(100f, (start - end).magnitude), r = 0;
+        float step = 80f / Mathf.Max(100f, (start - end).magnitude), r = 0;
         Vector2 temp1 = start, temp2 = start; stroke.volume = 0.3f;
 
         for (; r < 1f; r += step)
@@ -153,7 +158,7 @@ public class Board : MonoBehaviour
             temp2 = Vector2.Lerp(start, end, r + step) + Random.insideUnitCircle * 1.5f;
             DrawLine(temp1, temp2); temp1 = temp2;
             stroke.panStereo = 2f * temp2.x / Screen.width - 1f;
-            yield return new WaitForSecondsRealtime(0.03f);
+            yield return new WaitForEndOfFrame();
         }
 
         DrawLine(temp2, end);
@@ -166,6 +171,7 @@ public class Board : MonoBehaviour
             yield break;
 
         toolUsed = true;
+        stroke.volume = 0f;
         Vector2 start = mousePos;
         yield return new WaitUntil(() => { return Input.GetMouseButtonUp(0); });
         Vector2 end = mousePos;
@@ -179,6 +185,7 @@ public class Board : MonoBehaviour
             yield break;
 
         toolUsed = true;
+        stroke.volume = 0f;
         Vector2 start = mousePos;
         yield return new WaitUntil(() => { return Input.GetMouseButtonUp(0); });
         Vector2 end = mousePos;
@@ -192,13 +199,17 @@ public class Board : MonoBehaviour
             yield break;
 
         toolUsed = true;
+        stroke.volume = 0f;
         Vector2 start = mousePos;
         yield return new WaitUntil(() => { return Input.GetMouseButtonUp(0); });
         Vector2 end = mousePos;
 
         yield return DrawDottedLine(start, new Vector2(start.x, end.y));
+        yield return new WaitForSecondsRealtime(.3f);
         yield return DrawDottedLine(new Vector2(start.x, end.y), end);
+        yield return new WaitForSecondsRealtime(.3f);
         yield return DrawDottedLine(end, new Vector2(end.x, start.y));
+        yield return new WaitForSecondsRealtime(.3f);
         yield return DrawDottedLine(new Vector2(end.x, start.y), start);
         toolUsed = false;
     }
