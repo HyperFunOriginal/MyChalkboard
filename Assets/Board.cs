@@ -34,6 +34,7 @@ public class Board : MonoBehaviour
     public Texture2D chalkUp;
     public Texture2D chalkDown;
     public Texture2D eraser;
+    public Texture2D hand;
 
     [Header("Mouse")]
     public Vector2 mousePos;
@@ -56,12 +57,15 @@ public class Board : MonoBehaviour
     int Draw, Erase, Clear;
     bool toolUsed = false;
     bool update = false;
+    bool drawable = true;
+    bool temp = true;
     int frameCount = 0;
 
     void ClearChalk()
     {
         draw.SetInts("resolution", texture.width, texture.height);
         draw.Dispatch(Clear, Mathf.CeilToInt(texture.width / 16f), Mathf.CeilToInt(texture.height / 16f), 1);
+        mat.SetTexture("_MainTex", texture);
         update = true;
     }
 
@@ -72,6 +76,8 @@ public class Board : MonoBehaviour
         Erase = draw.FindKernel("Erase");
         Clear = draw.FindKernel("Clear");
 
+        drawable = true;
+        temp = true;
         myBoard = this;
         mat = GetComponent<MeshRenderer>().material;
         transform.localScale = new Vector3(((float)Screen.width) / Screen.height, 1.0f, 1.0f);
@@ -240,6 +246,22 @@ public class Board : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (!drawable)
+        {
+            drawable = true;
+            return;
+        }
+        if (!temp && drawable)
+        {
+            temp = true;
+            if (Input.GetMouseButton(0))
+                Cursor.SetCursor(chalkDown, new Vector2(0, 64f), CursorMode.Auto);
+            else if (Input.GetMouseButton(1))
+                Cursor.SetCursor(eraser, new Vector2(0, 32f), CursorMode.Auto);
+            else
+                Cursor.SetCursor(chalkUp, new Vector2(8f, 8f), CursorMode.Auto);
+        }
+
         if (!toolUsed)
         {
             bool walterLewin = Input.GetKey(KeyCode.LeftShift);
@@ -270,6 +292,19 @@ public class Board : MonoBehaviour
             mat.SetTexture("_MainTex", texture);
             update = false;
         }
+    }
+
+    public void SetLocked()
+    {
+        if (drawable)
+        {
+            Cursor.SetCursor(hand, new Vector2(16f, 16f), CursorMode.Auto);
+            stroke.volume = 0;
+            erase.volume = 0;
+            clack.volume = 0;
+        }
+        drawable = false;
+        temp = false;
     }
 
     void HandleCursor()
@@ -322,6 +357,9 @@ public class Board : MonoBehaviour
     {
         oldMousePos = mousePos;
         mousePos = Vector2.Lerp(Input.mousePosition, mousePos, Mathf.Exp(-Time.deltaTime * 20f));
+
+        if (!drawable)
+            return;
 
         HandleCursor();
         if (!toolUsed)

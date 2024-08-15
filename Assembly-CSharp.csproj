@@ -55,6 +55,8 @@
   <ItemGroup>
      <Compile Include="Assets\Board.cs" />
      <Compile Include="Assets\BoardTextureSwitcher.cs" />
+     <Compile Include="Assets\Ruler.cs" />
+     <Compile Include="Assets\RulerManager.cs" />
      <None Include="Assets\BoardDraw.compute" />
  <Reference Include="UnityEditor.StandardEvents">
  <HintPath>C:/Users/junya/MyChalkboard/Library/ScriptAssemblies/UnityEditor.StandardEvents.dll</HintPath>
